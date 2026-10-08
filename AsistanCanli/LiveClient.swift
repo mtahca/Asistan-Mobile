@@ -37,6 +37,8 @@ final class LiveClient: ObservableObject {
     @Published private(set) var caller = ""
     @Published private(set) var startedAt: Date?
     @Published private(set) var status = ""
+    @Published private(set) var ringing = false     // Mac'te gelen arama çalıyor, asistan cevaplayabilir
+    @Published private(set) var ringer = ""
 
     /// Elle girilen adres (Bonjour çalışmayan ağlar / VPN için), boşsa otomatik bulma
     @Published var manualHost: String = UserDefaults.standard.string(forKey: "manualHost") ?? "" {
@@ -231,6 +233,8 @@ final class LiveClient: ObservableObject {
             caller = obj["caller"] as? String ?? ""
             status = obj["status"] as? String ?? ""
             startedAt = (obj["startedAt"] as? Double).map { Date(timeIntervalSince1970: $0) }
+            ringing = obj["ringing"] as? Bool ?? false
+            ringer = obj["ringer"] as? String ?? ""
         case "snapshot":
             lines = (obj["lines"] as? [[String: Any]] ?? []).compactMap(LiveClient.parseLine)
         case "reset":
@@ -264,6 +268,9 @@ final class LiveClient: ObservableObject {
     }
 
     func endSession() { send(["t": "end"]) }
+
+    /// Çalan aramayı asistanla cevapla (Mac'te Odak modu açık olmasa da)
+    func answerCall() { send(["t": "answer"]) }
 
     /// Wi-Fi değişince bağlantı sessizce ölebilir: 10 sn'de bir yokla, 25 sn yanıt yoksa yeniden bağlan
     private func startPing() {

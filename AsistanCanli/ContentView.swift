@@ -45,6 +45,7 @@ struct LiveView: View {
         VStack(spacing: 0) {
             StatusBar()
             Divider()
+            if client.phase == .connected && client.ringing && !client.inSession { ringingCard }
             transcript
             if client.phase == .connected { inputBar }
         }
@@ -53,6 +54,26 @@ struct LiveView: View {
         } message: {
             Text("Asistan susar ve not kaydedilir.")
         }
+    }
+
+    private var ringingCard: some View {
+        VStack(spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: "phone.arrow.down.left.fill").foregroundStyle(.green)
+                Text(client.ringer.isEmpty ? "Gelen arama" : "Gelen arama: \(client.ringer)")
+                    .font(.headline)
+                Spacer(minLength: 0)
+            }
+            Button { client.answerCall() } label: {
+                Label("Asistanla cevapla", systemImage: "phone.fill")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(.green)
+            .controlSize(.large)
+        }
+        .padding(14)
+        .background(Color(.secondarySystemBackground))
     }
 
     private var transcript: some View {
