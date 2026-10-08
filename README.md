@@ -18,6 +18,9 @@ iPhone'dan asistana **talimat yazabilir** ve **görüşmeyi sonlandırabilirsini
 
 iPhone ve Mac aynı Wi‑Fi ağında olmalı. Farklı bir ağdan (ör. Tailscale/VPN üzerinden) bağlanmak için uygulamada **Ayarlar → Elle adres** alanına Mac'in adresini yazın.
 
+## Claude ile yerelde derleme
+`yerel-kurulum/CLAUDE.md` dosyasını Mac'te `~/Documents/Claude/Asistan` klasörüne koyup orada Claude Code'u başlatın. Dosya Mac tarafındaki entegrasyonu, iOS derlemesini ve iPhone'a yüklemeyi adım adım anlatır.
+
 ## Sorun giderme
 | Belirti | Çözüm |
 |---|---|
