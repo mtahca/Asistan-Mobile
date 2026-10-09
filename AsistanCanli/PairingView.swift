@@ -19,7 +19,7 @@ struct PairingView: View {
                 Text("Mac'le eşleştir")
                     .font(.title2.bold())
                 VStack(alignment: .leading, spacing: 8) {
-                    Label("Mac'te Asistan menüsünden “iPhone'dan izle…” seçeneğini açın.", systemImage: "1.circle")
+                    Label("Mac'te Asistan menüsünden “iPhone ve Odak…” penceresini açıp mobil bağlantıyı etkinleştirin.", systemImage: "1.circle")
                     Label("Gösterilen 8 haneli eşleştirme kodunu aşağıya yazın.", systemImage: "2.circle")
                     Label("iPhone ile Mac aynı Wi-Fi ağında olmalı.", systemImage: "3.circle")
                 }
@@ -65,6 +65,17 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
+                if client.phase == .connected {
+                    Section {
+                        Toggle("Arama karşılamayı duraklat", isOn: Binding(get: { client.paused }, set: { client.setPaused($0) }))
+                            .disabled(client.inSession || client.humanCall || !client.macSupportsPause)
+                    } header: {
+                        Text("Mac'teki Asistan")
+                    } footer: {
+                        Text(!client.macSupportsPause ? "Bu ayar Mac'te Asistan 0.8.4 veya üstünü gerektirir." + (client.macVersion.isEmpty ? "" : " Bağlı sürüm: \(client.macVersion).")
+                             : (client.inSession ? "Görüşme sürerken değiştirilemez." : "Açıkken Mac gelen aramaları karşılamaz; bu, Mac menüsündeki seçenekle aynıdır."))
+                    }
+                }
                 Section {
                     if client.macs.isEmpty {
                         Text("Ağda Mac bulunamadı").foregroundStyle(.secondary)
@@ -86,6 +97,8 @@ struct SettingsView: View {
                     }
                 } header: {
                     Text("Bulunan Mac'ler")
+                } footer: {
+                    Text("Adı “— Asistan” ile biten Mac'i seçin. Eski “— Asistan Beta” kayıtları artık kullanılmıyor.")
                 }
 
                 Section {
@@ -101,7 +114,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Elle adres (isteğe bağlı)")
                 } footer: {
-                    Text("Otomatik bulma çalışmıyorsa (ör. VPN/Tailscale üzerinden) Mac'in adresini yazın. Boş bırakırsanız Mac otomatik bulunur. Port: \(String(LiveProtocol.port)).")
+                    Text("Otomatik bulma çalışmıyorsa Mac'in adresini yazın; Mac'teki “iPhone ve Odak…” penceresi adresi gösterir. Boş bırakırsanız Mac otomatik bulunur. Port: \(String(LiveProtocol.port)).")
                 }
 
                 Section {

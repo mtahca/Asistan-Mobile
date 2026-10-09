@@ -1,6 +1,7 @@
 // Asistan Canlı — ana ekran: durum çubuğu, canlı metin, talimat alanı
 
 import SwiftUI
+import UIKit
 
 struct ContentView: View {
     @EnvironmentObject var client: LiveClient
@@ -18,6 +19,14 @@ struct ContentView: View {
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    if !client.lines.isEmpty {
+                        ShareLink(item: client.transcriptText, subject: Text("Asistan görüşmesi")) {
+                            Image(systemName: "square.and.arrow.up")
+                        }
+                        .accessibilityLabel("Metni paylaş")
+                    }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { showSettings = true } label: { Image(systemName: "gearshape") }
                         .accessibilityLabel("Ayarlar")
@@ -25,10 +34,14 @@ struct ContentView: View {
             }
             .sheet(isPresented: $showSettings) { SettingsView() }
         }
+        // Görüşme sürerken ekran kapanmasın; telefon masada dururken metin okunabilsin.
+        .onChange(of: client.inSession || client.humanCall, initial: true) { _, active in
+            UIApplication.shared.isIdleTimerDisabled = active
+        }
     }
 
     private var title: String {
-        if client.inSession { return client.caller.isEmpty ? "Görüşmede" : client.caller }
+        if client.inSession || client.humanCall { return client.caller.isEmpty ? "Görüşmede" : client.caller }
         return "Canlı görüşme"
     }
 }
@@ -41,14 +54,28 @@ struct LiveView: View {
     @State private var confirmEnd = false
     @FocusState private var typing: Bool
 
+    /// Mac'teki "Hazır notlar" listesiyle aynı
+    static let quickNotes = [
+        "Şu an müsait değilim; en kısa sürede dönüş yapacağım.",
+        "Mesajını ve geri dönüş numarasını not al.",
+        "Konuyu kısaca öğren, sonra görüşmeyi kibarca bitir.",
+        "Acil bir durumsa bana hemen mesaj atmasını söyle.",
+    ]
+
     var body: some View {
         VStack(spacing: 0) {
             StatusBar()
             Divider()
             if client.phase == .connected && client.ringing && !client.inSession { ringingCard }
             transcript
-            if client.phase == .connected { inputBar }
+            if client.phase == .connected {
+                if client.inSession { quickNoteChips }
+                inputBar
+            }
         }
+        // Gelen aramada ve görüşme başlayınca kısa titreşim
+        .sensoryFeedback(.warning, trigger: client.ringing) { _, ringing in ringing }
+        .sensoryFeedback(.success, trigger: client.inSession) { _, inSession in inSession }
         .confirmationDialog("Görüşme sonlandırılsın mı?", isPresented: $confirmEnd, titleVisibility: .visible) {
             Button("Sonlandır", role: .destructive) { client.endSession() }
         } message: {
@@ -59,7 +86,7 @@ struct LiveView: View {
     private var ringingCard: some View {
         VStack(spacing: 10) {
             HStack(spacing: 8) {
-                Image(systemName: "phone.arrow.down.left.fill").foregroundStyle(.green)
+                Image(systemName: client.source == "whatsapp" ? "message.fill" : "phone.arrow.down.left.fill").foregroundStyle(.green)
                 Text(client.ringer.isEmpty ? "Gelen arama" : "Gelen arama: \(client.ringer)")
                     .font(.headline)
                 Spacer(minLength: 0)
@@ -71,6 +98,11 @@ struct LiveView: View {
             .buttonStyle(.borderedProminent)
             .tint(.green)
             .controlSize(.large)
+            .disabled(client.paused)
+            if client.paused {
+                Text("Mac'te arama karşılama duraklatılmış. Ayarlar'dan sürdürebilirsiniz.")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
         }
         .padding(14)
         .background(Color(.secondarySystemBackground))
@@ -95,6 +127,10 @@ struct LiveView: View {
             .onChange(of: client.lines.last?.id) { _, _ in
                 withAnimation(.easeOut(duration: 0.2)) { proxy.scrollTo("bottom", anchor: .bottom) }
             }
+            .onChange(of: client.lines.last?.text) { _, _ in
+                // GPT-Live son satırı yerinde günceller; metin uzayınca da altta kal
+                proxy.scrollTo("bottom", anchor: .bottom)
+            }
             .onAppear { proxy.scrollTo("bottom", anchor: .bottom) }
         }
     }
@@ -113,6 +149,30 @@ struct LiveView: View {
         .padding(.top, 80)
     }
 
+    private var quickNoteChips: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(Self.quickNotes, id: \.self) { note in
+                    Button {
+                        draft = note
+                        typing = true
+                    } label: {
+                        Text(note)
+                            .font(.footnote)
+                            .lineLimit(1)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 7)
+                            .background(Color(.tertiarySystemFill), in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+        }
+        .background(.bar)
+    }
+
     private var inputBar: some View {
         VStack(spacing: 0) {
             Divider()
@@ -126,7 +186,8 @@ struct LiveView: View {
                 .disabled(!client.inSession)
                 .accessibilityLabel("Görüşmeyi sonlandır")
 
-                TextField(client.inSession ? "Asistana talimat yaz" : "Görüşme yokken talimat gönderilemez", text: $draft)
+                TextField(client.inSession ? "Asistana talimat yaz" : "Görüşme yokken talimat gönderilemez", text: $draft, axis: .vertical)
+                    .lineLimit(1...4)
                     .textFieldStyle(.roundedBorder)
                     .focused($typing)
                     .submitLabel(.send)
@@ -166,11 +227,19 @@ struct StatusBar: View {
                 }
             }
             Spacer(minLength: 0)
-            if client.inSession, let t0 = client.startedAt {
-                TimelineView(.periodic(from: .now, by: 1)) { ctx in
-                    Text(elapsed(from: t0, to: ctx.date))
-                        .font(.subheadline.monospacedDigit())
-                        .foregroundStyle(.secondary)
+            if client.inSession || client.humanCall, let t0 = client.startedAt {
+                HStack(spacing: 6) {
+                    if !client.source.isEmpty {
+                        Image(systemName: client.source == "whatsapp" ? "message.fill" : "phone.fill")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .accessibilityLabel(client.source == "whatsapp" ? "WhatsApp" : "Telefon")
+                    }
+                    TimelineView(.periodic(from: .now, by: 1)) { ctx in
+                        Text(elapsed(from: t0, to: ctx.date))
+                            .font(.subheadline.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                    }
                 }
             } else if case .connecting = client.phase {
                 ProgressView()
@@ -185,7 +254,10 @@ struct StatusBar: View {
 
     private var color: Color {
         switch client.phase {
-        case .connected: return client.inSession ? .green : .blue
+        case .connected:
+            if client.inSession { return .green }
+            if client.humanCall { return .purple }
+            return client.paused ? .gray : .blue
         case .connecting, .searching: return .orange
         case .failed, .needsCode: return .red
         }
@@ -193,7 +265,11 @@ struct StatusBar: View {
 
     private var headline: String {
         switch client.phase {
-        case .connected: return client.inSession ? "Görüşmede — asistan konuşuyor" : (client.macName.isEmpty ? "Mac'e bağlı" : client.macName + " bağlı")
+        case .connected:
+            if client.inSession { return "Görüşmede — asistan konuşuyor" }
+            if client.humanCall { return "Görüşmeyi siz devraldınız" }
+            if client.paused { return "Duraklatıldı — arama karşılanmıyor" }
+            return client.macName.isEmpty ? "Mac'e bağlı" : client.macName + " bağlı"
         case .connecting(let name): return "\(name) Mac'ine bağlanılıyor…"
         case .searching: return "Mac aranıyor…"
         case .failed: return "Bağlantı yok"
@@ -203,8 +279,10 @@ struct StatusBar: View {
 
     private var detail: String? {
         switch client.phase {
-        case .connected: return client.inSession ? nil : (client.status.isEmpty ? nil : client.status)
-        case .searching: return "Mac ile aynı Wi-Fi ağında olun; Mac'te menüden “iPhone'dan izle…” açık olmalı."
+        case .connected:
+            if client.inSession || client.humanCall { return nil }
+            return client.status.isEmpty ? nil : client.status
+        case .searching: return "Mac ile aynı Wi-Fi ağında olun; Mac'te “iPhone ve Odak…” penceresinden mobil bağlantı açık olmalı."
         case .failed(let msg): return msg
         default: return nil
         }
@@ -226,7 +304,7 @@ struct LineView: View {
         case .note:
             Text(line.text)
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(line.text.hasPrefix("⚠️") ? .orange : .secondary)
                 .frame(maxWidth: .infinity)
                 .multilineTextAlignment(.center)
                 .padding(.vertical, 2)
