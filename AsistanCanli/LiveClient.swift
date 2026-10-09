@@ -39,6 +39,10 @@ final class LiveClient: ObservableObject {
     @Published private(set) var status = ""
     @Published private(set) var ringing = false     // Mac'te gelen arama çalıyor, asistan cevaplayabilir
     @Published private(set) var ringer = ""
+    @Published private(set) var source = ""         // "phone" | "whatsapp" | "" (Asistan 0.8.4+)
+    @Published private(set) var paused = false      // Mac'te arama karşılama duraklatıldı
+    @Published private(set) var humanCall = false   // kullanıcı görüşmeyi Mac'te devraldı
+    @Published private(set) var macVersion = ""     // Mac'teki Asistan sürümü (0.8.4+)
 
     /// Elle girilen adres (Bonjour çalışmayan ağlar / VPN için), boşsa otomatik bulma
     @Published var manualHost: String = UserDefaults.standard.string(forKey: "manualHost") ?? "" {
@@ -228,6 +232,7 @@ final class LiveClient: ObservableObject {
         switch obj["t"] as? String {
         case "hello":
             macName = obj["mac"] as? String ?? ""
+            macVersion = obj["app"] as? String ?? ""
         case "state":
             inSession = obj["inSession"] as? Bool ?? false
             caller = obj["caller"] as? String ?? ""
@@ -235,6 +240,9 @@ final class LiveClient: ObservableObject {
             startedAt = (obj["startedAt"] as? Double).map { Date(timeIntervalSince1970: $0) }
             ringing = obj["ringing"] as? Bool ?? false
             ringer = obj["ringer"] as? String ?? ""
+            source = obj["source"] as? String ?? ""
+            paused = obj["paused"] as? Bool ?? false
+            humanCall = obj["humanCall"] as? Bool ?? false
         case "snapshot":
             lines = (obj["lines"] as? [[String: Any]] ?? []).compactMap(LiveClient.parseLine)
         case "reset":
@@ -271,6 +279,26 @@ final class LiveClient: ObservableObject {
 
     /// Çalan aramayı asistanla cevapla (Mac'te Odak modu açık olmasa da)
     func answerCall() { send(["t": "answer"]) }
+
+    /// Mac'te arama karşılamayı duraklat / sürdür (Asistan 0.8.4+; görüşme sırasında değiştirilemez)
+    func setPaused(_ on: Bool) { send(["t": "pause", "on": on]) }
+
+    /// Mac'in gönderdiği durum alanlarını destekleyen bir sürüm mü (0.8.4+)?
+    var macSupportsPause: Bool {
+        let parts = macVersion.split(separator: ".").compactMap { Int($0) }
+        guard parts.count >= 2 else { return false }
+        return parts[0] > 0 || parts[1] > 8 || (parts[1] == 8 && parts.count >= 3 && parts[2] >= 4)
+    }
+
+    /// Paylaşım için düz metin
+    var transcriptText: String {
+        let f = DateFormatter(); f.dateFormat = "HH:mm"
+        var out = caller.isEmpty ? "" : "Arayan: \(caller)\n\n"
+        for l in lines {
+            out += l.kind == .note ? "— \(l.text)\n" : "[\(f.string(from: l.date))] \(l.speaker): \(l.text)\n"
+        }
+        return out
+    }
 
     /// Wi-Fi değişince bağlantı sessizce ölebilir: 10 sn'de bir yokla, 25 sn yanıt yoksa yeniden bağlan
     private func startPing() {
