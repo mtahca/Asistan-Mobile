@@ -6,7 +6,7 @@ iPhone'dan **gelen aramayı asistanla cevaplayabilir**, asistana **talimat yazab
 "Devral" bilerek eklenmedi, çünkü Mac'in mikrofonunu hatta aktarır ve Mac başında olmayı gerektirir.
 
 ## Sürüm 0.3 (Asistan 0.8.11 ile)
-- **QR ile eşleştirme:** Mac'teki "iPhone ve Odak…" penceresindeki QR kodu uygulamadan ya da iPhone Kamera ile okutun. QR, rastgele 256 bitlik bir anahtar taşır; 8 haneli kodun aksine kaydedilmiş bir bağlantıdan tahmin edilemez. QR ile eşleşen telefon 47822 portunu kullanır. 8 haneli kod eski Mac sürümleri için hâlâ seçilebilir.
+- **QR ile eşleştirme:** Mac'teki "iPhone ve Odak…" penceresindeki QR kodu uygulamadan ya da iPhone Kamera ile okutun. QR, rastgele 256 bitlik bir anahtar taşır; kaydedilmiş bir bağlantıdan tahmin edilemez. 0.3.2'den itibaren tek yöntem budur (8 haneli kod kaldırıldı) ve Mac'te Asistan 0.8.13 gerekir.
 - **Tam ekran gelen arama:** Büyük "Asistanla cevapla" düğmesi; "Kapat" ile küçük karta dönülür.
 - **Kaydırma konumu korunur:** Yukarı kaydırıp okurken yeni satırlar sizi aşağı atmaz; "Yeni satırlar" düğmesi en alta götürür.
 - **Görüşme özeti ve son görüşmeler:** Görüşme bitince özet kartı görünür; saat simgesi son görüşmelerin başlık ve özetlerini listeler. Tam döküm Mac'te kalır.
@@ -26,12 +26,12 @@ Asistan 0.8.0–0.8.3 ile de çalışır; duraklatma anahtarı ve kaynak simgesi
 
 ## Nasıl çalışır
 - Mac'teki Asistan, yerel ağda Bonjour ile `_asistan-canli._tcp` servisini (port **47821**) yayınlar. Servis adı "— Asistan" ile biter.
-- iPhone uygulaması Mac'i otomatik bulur ve bağlanır. Bağlantı **TLS-PSK** ile şifrelenir. Anahtar, Mac'teki **QR kodunda** taşınan 256 bitlik rastgele anahtardan türetilir (servis `_asistan-v2._tcp`, port **47822**). Eski yöntemde anahtar 8 haneli koddan türetilir (`_asistan-canli._tcp`, port 47821); bu kod, ağdaki biri bağlantıyı kaydederse tahmin edilebilir, bu yüzden Mac'te kapatılabilir.
+- iPhone uygulaması Mac'i otomatik bulur ve bağlanır. Bağlantı **TLS-PSK** ile şifrelenir. Anahtar, Mac'teki **QR kodunda** taşınan 256 bitlik rastgele anahtardan türetilir (servis `_asistan-canli._tcp`, port **47821**). 0.3.1'deki ayrı 47822 portu kaldırıldı: Mac'in Info.plist'inde o servis türü olmadığı için macOS yayını reddediyordu ve telefon "Mac'e ulaşıldı ama Asistan dinlemiyor" hatası veriyordu.
 - Bağlanınca son görüşmenin metni ve güncel durum (görüşmede mi, arayan, süre) gönderilir. Ardından her yeni satır anında gelir.
 - iOS, arka plandaki uygulamaların bağlantısını kapatır. Uygulamayı yeniden açtığınızda otomatik bağlanır ve o ana kadarki metni yeniden alır.
 
 ## Kurulum
-1. **Mac:** Asistan 0.8 veya üstünü kurun (Asistan deposu, `bash build.sh`). Menü çubuğunda **iPhone ve Odak…** penceresini açıp **Asistan Mobile bağlantısını aç** kutusunu işaretleyin. Gösterilen 8 haneli kodu ve gerekiyorsa Mac adresini not edin. macOS yerel ağ için izin sorarsa izin verin.
+1. **Mac:** Asistan 0.8.13 veya üstünü kurun (Asistan deposu, `bash build.sh`). Menü çubuğunda **iPhone ve Odak…** penceresini açıp **Asistan Mobile bağlantısını aç** kutusunu işaretleyin. Penceredeki QR kodu iPhone'da **QR kodu tara** ile okutun. macOS yerel ağ için izin sorarsa izin verin.
 2. **iPhone:** `AsistanCanli.xcodeproj` dosyasını Xcode 16 veya üstüyle açın. *Signing & Capabilities* bölümünde kendi Apple kimliğinizi (Team) seçin, iPhone'u bağlayın ve **Run** ile yükleyin. Ücretsiz Apple kimliğiyle yüklenen uygulama 7 gün sonra yeniden yüklenmelidir.
 3. Uygulamayı açın, **QR kodu tara** ile Mac'teki kodu okutun. iOS **Kamera** ve **Yerel Ağ** izni isterse izin verin.
 

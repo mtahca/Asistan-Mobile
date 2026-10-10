@@ -7,7 +7,6 @@
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_asistan-canli._tcp</string>
-		<string>_asistan-v2._tcp</string>
 	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>Asistan Canlı, Mac'teki eşleştirme QR kodunu okumak için kamerayı kullanır.</string>
