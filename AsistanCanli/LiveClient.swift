@@ -240,7 +240,9 @@ final class LiveClient: ObservableObject {
                 : "Mac bağlantıyı reddetti. Eşleştirme kodu yanlış ya da Mac'te yenilenmiş olabilir."
         }
         if case .posix(let p) = e, p == .ECONNREFUSED {
-            return "Mac'e ulaşıldı ama Asistan dinlemiyor. Mac'te menüden “iPhone ve Odak…” penceresini açıp mobil bağlantıyı açın."
+            // The Mac may have turned the old 8-digit code off; only the QR pairing works then.
+            return securePairing ? "Mac'e ulaşıldı ama Asistan dinlemiyor. Mac'te Ayarlar > iPhone ve Odak'ta mobil bağlantının açık olduğunu kontrol edin."
+                : "Mac'e ulaşıldı ama eski kodla bağlantı kabul edilmiyor. Mac'te Ayarlar > iPhone ve Odak'taki QR kodu okutun."
         }
         return "Mac'e bağlanılamadı (\(e.localizedDescription)). Aynı Wi-Fi ağında olduğunuzdan emin olun."
     }
