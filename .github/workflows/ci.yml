@@ -15,5 +15,8 @@ jobs:
           url="https://raw.githubusercontent.com/mtahca/Asistan/$branch/app/MobileProtocol.swift"
           curl -fsSL "$url" -o "$RUNNER_TEMP/mac.swift" || curl -fsSL "https://raw.githubusercontent.com/mtahca/Asistan/main/app/MobileProtocol.swift" -o "$RUNNER_TEMP/mac.swift"
           diff -u "$RUNNER_TEMP/mac.swift" AsistanCanli/MobileProtocol.swift
-      - name: iOS Simulator için derle
-        run: xcodebuild -project AsistanCanli.xcodeproj -target AsistanCanli -sdk iphonesimulator -configuration Debug CODE_SIGNING_ALLOWED=NO build
+      # Asistan Saat (watchOS) ve kadran bileşeni, iPhone uygulamasının içinde derlenir.
+      - name: iOS Simulator için derle (saat uygulamasıyla)
+        run: xcodebuild -project AsistanCanli.xcodeproj -scheme AsistanCanli -destination 'generic/platform=iOS Simulator' -configuration Debug CODE_SIGNING_ALLOWED=NO build
+      - name: Saat uygulamasını watchOS Simulator için derle
+        run: xcodebuild -project AsistanCanli.xcodeproj -target AsistanSaat -sdk watchsimulator -configuration Debug CODE_SIGNING_ALLOWED=NO build

@@ -5,6 +5,13 @@ Asistan bir aramayı cevapladığında konuşma (arayan, asistan, sözü kesilen
 iPhone'dan **gelen aramayı asistanla cevaplayabilir**, asistana **talimat yazabilir**, görüşmeyi **sonlandırabilir** ve Mac'te **arama karşılamayı duraklatabilirsiniz**. Bunlar Mac penceresindeki düğmelerle aynı işi yapar.
 "Devral" bilerek eklenmedi, çünkü Mac'in mikrofonunu hatta aktarır ve Mac başında olmayı gerektirir.
 
+## Sürüm 0.4: Apple Watch (Asistan Saat)
+- **Saat uygulaması:** Arama çalıyorsa büyük yeşil **Cevapla**, görüşme sürüyorsa kırmızı **Bitir** düğmesi; altında arayan, süre ve son konuşmalar anlık görünür. Yalnızca o anki görüşme gösterilir.
+- **Kadran bileşeni:** Döviz gibi küçük bir bileşen yerine "Asistan" eklenir. Boşta gri, arama gelince yeşil, görüşmede kırmızıdır; dokununca saat uygulaması açılır (watchOS'ta bileşene dokunmak doğrudan işlem yapamaz).
+- **Nasıl taşınır:** watchOS saatin Mac'e doğrudan bağlanmasına izin vermez. Saat komutu iPhone'daki Asistan Canlı'ya gönderir; iOS uygulamayı arka planda uyandırır, o da Mac'e bağlanıp komutu iletir. iPhone saatin yakınında olmalı.
+- **Sınır:** Bileşenin rengi iPhone'daki uygulama Mac'e bağlıyken (ya da saat uygulaması açıkken) güncellenir. Uygulama kapalıyken rengin kendiliğinden değişmesi için Mac'ten Apple bildirim servisiyle haber gönderilmesi gerekir; bu sonraki aşamadır.
+- **Kurulum:** Xcode'da *AsistanCanli* şemasıyla iPhone'a yükleyin; saat uygulaması iPhone uygulamasıyla birlikte gelir (Saat uygulamasında "Asistan" → Yükle). *AsistanSaat* ve *AsistanSaatWidget* hedeflerinde de aynı Team'i seçin. Saatte Ayarlar → Gizlilik ve Güvenlik → Geliştirici Modu açık olmalı.
+
 ## Sürüm 0.3 (Asistan 0.8.11 ile)
 - **QR ile eşleştirme:** Mac'teki "iPhone ve Odak…" penceresindeki QR kodu uygulamadan ya da iPhone Kamera ile okutun. QR, rastgele 256 bitlik bir anahtar taşır; kaydedilmiş bir bağlantıdan tahmin edilemez. 0.3.2'den itibaren tek yöntem budur (8 haneli kod kaldırıldı) ve Mac'te Asistan 0.8.13 gerekir.
 - **Tam ekran gelen arama:** Büyük "Asistanla cevapla" düğmesi; "Kapat" ile küçük karta dönülür.
