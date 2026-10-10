@@ -6,9 +6,61 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		B1C0DE000000000000000061 /* AsistanSaat.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = B1C0DE000000000000000001 /* AsistanSaat.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		B1C0DE000000000000000062 /* AsistanSaatWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = B1C0DE000000000000000002 /* AsistanSaatWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		B1C0DE000000000000000063 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A1C0DE000000000000000050 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B1C0DE000000000000000040;
+			remoteInfo = AsistanSaat;
+		};
+		B1C0DE000000000000000065 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A1C0DE000000000000000050 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B1C0DE000000000000000050;
+			remoteInfo = AsistanSaatWidget;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		B1C0DE000000000000000060 /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				B1C0DE000000000000000061 /* AsistanSaat.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B1C0DE000000000000000044 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				B1C0DE000000000000000062 /* AsistanSaatWidget.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		A1C0DE000000000000000001 /* AsistanCanli.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AsistanCanli.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A1C0DE000000000000000002 /* AsistanCanli-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "AsistanCanli-Info.plist"; sourceTree = "<group>"; };
+		B1C0DE000000000000000001 /* AsistanSaat.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AsistanSaat.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B1C0DE000000000000000002 /* AsistanSaatWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = AsistanSaatWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		B1C0DE000000000000000003 /* AsistanSaat-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "AsistanSaat-Info.plist"; sourceTree = "<group>"; };
+		B1C0DE000000000000000004 /* AsistanSaatWidget-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "AsistanSaatWidget-Info.plist"; sourceTree = "<group>"; };
+		B1C0DE000000000000000005 /* AsistanSaat.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AsistanSaat.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -17,10 +69,39 @@
 			path = AsistanCanli;
 			sourceTree = "<group>";
 		};
+		B1C0DE000000000000000010 /* Ortak */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Ortak;
+			sourceTree = "<group>";
+		};
+		B1C0DE000000000000000011 /* AsistanSaat */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = AsistanSaat;
+			sourceTree = "<group>";
+		};
+		B1C0DE000000000000000012 /* AsistanSaatWidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = AsistanSaatWidget;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		A1C0DE000000000000000020 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B1C0DE000000000000000042 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B1C0DE000000000000000052 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -34,7 +115,13 @@
 			isa = PBXGroup;
 			children = (
 				A1C0DE000000000000000010 /* AsistanCanli */,
+				B1C0DE000000000000000010 /* Ortak */,
+				B1C0DE000000000000000011 /* AsistanSaat */,
+				B1C0DE000000000000000012 /* AsistanSaatWidget */,
 				A1C0DE000000000000000002 /* AsistanCanli-Info.plist */,
+				B1C0DE000000000000000003 /* AsistanSaat-Info.plist */,
+				B1C0DE000000000000000004 /* AsistanSaatWidget-Info.plist */,
+				B1C0DE000000000000000005 /* AsistanSaat.entitlements */,
 				A1C0DE000000000000000031 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -43,6 +130,8 @@
 			isa = PBXGroup;
 			children = (
 				A1C0DE000000000000000001 /* AsistanCanli.app */,
+				B1C0DE000000000000000001 /* AsistanSaat.app */,
+				B1C0DE000000000000000002 /* AsistanSaatWidget.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -57,13 +146,16 @@
 				A1C0DE000000000000000041 /* Sources */,
 				A1C0DE000000000000000020 /* Frameworks */,
 				A1C0DE000000000000000042 /* Resources */,
+				B1C0DE000000000000000060 /* Embed Watch Content */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				B1C0DE000000000000000064 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				A1C0DE000000000000000010 /* AsistanCanli */,
+				B1C0DE000000000000000010 /* Ortak */,
 			);
 			name = AsistanCanli;
 			packageProductDependencies = (
@@ -71,6 +163,54 @@
 			productName = AsistanCanli;
 			productReference = A1C0DE000000000000000001 /* AsistanCanli.app */;
 			productType = "com.apple.product-type.application";
+		};
+		B1C0DE000000000000000040 /* AsistanSaat */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B1C0DE000000000000000070 /* Build configuration list for PBXNativeTarget "AsistanSaat" */;
+			buildPhases = (
+				B1C0DE000000000000000041 /* Sources */,
+				B1C0DE000000000000000042 /* Frameworks */,
+				B1C0DE000000000000000043 /* Resources */,
+				B1C0DE000000000000000044 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B1C0DE000000000000000066 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				B1C0DE000000000000000011 /* AsistanSaat */,
+				B1C0DE000000000000000010 /* Ortak */,
+			);
+			name = AsistanSaat;
+			packageProductDependencies = (
+			);
+			productName = AsistanSaat;
+			productReference = B1C0DE000000000000000001 /* AsistanSaat.app */;
+			productType = "com.apple.product-type.application";
+		};
+		B1C0DE000000000000000050 /* AsistanSaatWidget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B1C0DE000000000000000080 /* Build configuration list for PBXNativeTarget "AsistanSaatWidget" */;
+			buildPhases = (
+				B1C0DE000000000000000051 /* Sources */,
+				B1C0DE000000000000000052 /* Frameworks */,
+				B1C0DE000000000000000053 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				B1C0DE000000000000000012 /* AsistanSaatWidget */,
+				B1C0DE000000000000000010 /* Ortak */,
+			);
+			name = AsistanSaatWidget;
+			packageProductDependencies = (
+			);
+			productName = AsistanSaatWidget;
+			productReference = B1C0DE000000000000000002 /* AsistanSaatWidget.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -83,6 +223,12 @@
 				LastUpgradeCheck = 1600;
 				TargetAttributes = {
 					A1C0DE000000000000000040 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+					B1C0DE000000000000000040 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+					B1C0DE000000000000000050 = {
 						CreatedOnToolsVersion = 16.0;
 					};
 				};
@@ -102,12 +248,28 @@
 			projectRoot = "";
 			targets = (
 				A1C0DE000000000000000040 /* AsistanCanli */,
+				B1C0DE000000000000000040 /* AsistanSaat */,
+				B1C0DE000000000000000050 /* AsistanSaatWidget */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		A1C0DE000000000000000042 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B1C0DE000000000000000043 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B1C0DE000000000000000053 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -124,7 +286,34 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		B1C0DE000000000000000041 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B1C0DE000000000000000051 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		B1C0DE000000000000000064 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B1C0DE000000000000000040 /* AsistanSaat */;
+			targetProxy = B1C0DE000000000000000063 /* PBXContainerItemProxy */;
+		};
+		B1C0DE000000000000000066 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B1C0DE000000000000000050 /* AsistanSaatWidget */;
+			targetProxy = B1C0DE000000000000000065 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		A1C0DE000000000000000061 /* Debug */ = {
@@ -184,7 +373,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "AsistanCanli-Info.plist";
@@ -198,7 +387,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.3.2;
+				MARKETING_VERSION = 0.4.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.mtahca.asistan.canli;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -213,7 +402,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "AsistanCanli-Info.plist";
@@ -227,12 +416,128 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.3.2;
+				MARKETING_VERSION = 0.4.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.mtahca.asistan.canli;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		B1C0DE000000000000000071 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = AsistanSaat.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 6;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "AsistanSaat-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = Asistan;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.mtahca.asistan.canli;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.4.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mtahca.asistan.canli.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Debug;
+		};
+		B1C0DE000000000000000072 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = AsistanSaat.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 6;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "AsistanSaat-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = Asistan;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.mtahca.asistan.canli;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.4.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mtahca.asistan.canli.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Release;
+		};
+		B1C0DE000000000000000081 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = AsistanSaat.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 6;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "AsistanSaatWidget-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = Asistan;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 0.4.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mtahca.asistan.canli.watchkitapp.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Debug;
+		};
+		B1C0DE000000000000000082 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = AsistanSaat.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 6;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "AsistanSaatWidget-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = Asistan;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 0.4.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mtahca.asistan.canli.watchkitapp.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
 			};
 			name = Release;
 		};
@@ -253,6 +558,24 @@
 			buildConfigurations = (
 				A1C0DE000000000000000071 /* Debug */,
 				A1C0DE000000000000000072 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B1C0DE000000000000000070 /* Build configuration list for PBXNativeTarget "AsistanSaat" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B1C0DE000000000000000071 /* Debug */,
+				B1C0DE000000000000000072 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B1C0DE000000000000000080 /* Build configuration list for PBXNativeTarget "AsistanSaatWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B1C0DE000000000000000081 /* Debug */,
+				B1C0DE000000000000000082 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
