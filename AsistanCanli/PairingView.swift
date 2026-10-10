@@ -1,16 +1,12 @@
-// Asistan Canlı — eşleştirme kodu girişi ve ayarlar
+// Asistan Canlı — QR ile eşleştirme ve ayarlar
 
 import SwiftUI
 import UIKit
 
 struct PairingView: View {
     @EnvironmentObject var client: LiveClient
-    @State private var code = ""
     @State private var scanning = false
-    @State private var showCode = false
     @State private var problem = ""
-
-    private var digits: String { code.filter(\.isNumber) }
 
     var body: some View {
         ScrollView {
@@ -48,27 +44,6 @@ struct PairingView: View {
                     Text(problem).font(.footnote).foregroundStyle(.orange).multilineTextAlignment(.center)
                 }
 
-                DisclosureGroup("Eski Mac sürümü: 8 haneli kodla bağlan", isExpanded: $showCode) {
-                    VStack(spacing: 12) {
-                        TextField("1234 5678", text: $code)
-                            .keyboardType(.numberPad)
-                            .textContentType(.oneTimeCode)
-                            .font(.system(.title, design: .monospaced))
-                            .multilineTextAlignment(.center)
-                            .padding(12)
-                            .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12))
-                        Button {
-                            client.setCode(digits)
-                        } label: {
-                            Text("Kodla bağlan").frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.bordered)
-                        .disabled(digits.count != 8)
-                    }
-                    .padding(.top, 8)
-                }
-                .font(.callout)
-
                 Text("Eşleştirme anahtarı bağlantıyı şifreler ve yalnızca bu iPhone'un anahtar zincirinde saklanır.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
@@ -104,7 +79,6 @@ struct SettingsView: View {
     @EnvironmentObject var client: LiveClient
     @Environment(\.dismiss) private var dismiss
     @State private var host = ""
-    @State private var newCode = ""
     @State private var scanning = false
 
     var body: some View {
@@ -159,7 +133,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Elle adres (isteğe bağlı)")
                 } footer: {
-                    Text("Otomatik bulma çalışmıyorsa Mac'in adresini yazın; Mac'teki “iPhone ve Odak…” penceresi adresi gösterir. Boş bırakırsanız Mac otomatik bulunur. Port: \(String(client.securePairing ? LiveProtocol.securePort : LiveProtocol.port)).")
+                    Text("Otomatik bulma çalışmıyorsa Mac'in adresini yazın; Mac'teki “iPhone ve Odak…” penceresi adresi gösterir. Boş bırakırsanız Mac otomatik bulunur. Port: \(String(LiveProtocol.port)).")
                 }
 
                 Section {
@@ -169,13 +143,6 @@ struct SettingsView: View {
                     if QRScannerView.isAvailable {
                         Button("QR kodu yeniden tara") { scanning = true }
                     }
-                    TextField("Eski Mac için 8 haneli kod", text: $newCode)
-                        .keyboardType(.numberPad)
-                    Button("Kodla bağlan") {
-                        client.setCode(newCode)
-                        dismiss()
-                    }
-                    .disabled(newCode.filter(\.isNumber).count != 8)
                     Button("Eşleştirmeyi kaldır", role: .destructive) {
                         client.forgetCode()
                         dismiss()
@@ -183,7 +150,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Eşleştirme")
                 } footer: {
-                    Text("Mac'te eşleştirmeyi yenilediyseniz yeni QR kodu okutun. 8 haneli kod yalnızca QR göstermeyen eski Asistan sürümleri içindir.")
+                    Text("Mac'te eşleştirmeyi yenilediyseniz yeni QR kodu okutun. Mac'te Asistan 0.8.13 veya üstü gerekir.")
                 }
             }
             .sheet(isPresented: $scanning) { ScanSheet(isPresented: $scanning) }

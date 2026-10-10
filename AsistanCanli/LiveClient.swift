@@ -74,8 +74,7 @@ final class LiveClient: ObservableObject {
         didSet { UserDefaults.standard.set(preferredMac, forKey: "preferredMac") }
     }
 
-    private(set) var code: String = Keychain.read("pairingCode") ?? ""
-    /// QR ile alınan 256 bit anahtar. Varsa eski 8 haneli kod kullanılmaz.
+    /// QR ile alınan 256 bit anahtar
     private(set) var key: Data? = Keychain.read("pairingKey").flatMap(PairingLink.decode)
     /// QR kodundaki Mac adresleri; Bonjour Mac'i bulamazsa denenir
     private var linkHosts: [String] = UserDefaults.standard.stringArray(forKey: "linkHosts") ?? []
@@ -88,9 +87,11 @@ final class LiveClient: ObservableObject {
     private var lastPong = Date()
 
     var securePairing: Bool { key?.count == PairingLink.keyLength }
-    var hasCode: Bool { securePairing || code.count == 8 }
+    var hasCode: Bool { securePairing }
 
     init() {
+        // 8 haneli kodla eşleşme 0.3.2'de kaldırıldı; eski kayıt QR ile yeniden eşleşmeyi gerektirir.
+        Keychain.delete("pairingCode")
         if !hasCode { phase = .needsCode }
     }
 
@@ -111,22 +112,11 @@ final class LiveClient: ObservableObject {
         connection?.cancel(); connection = nil
     }
 
-    /// Eski yöntem: Mac'teki 8 haneli kod
-    func setCode(_ raw: String) {
-        let digits = raw.filter(\.isNumber)
-        guard digits.count == 8 else { return }
-        code = digits
-        Keychain.save("pairingCode", digits)
-        key = nil; Keychain.delete("pairingKey")
-        reconnect()
-    }
-
     /// QR kodu, Kamera'dan açılan bağlantı ya da yapıştırılan metin
     @discardableResult func pair(_ text: String) -> Bool {
         guard let link = PairingLink(text) else { return false }
         key = link.key
         Keychain.save("pairingKey", PairingLink.encode(link.key))
-        code = ""; Keychain.delete("pairingCode")
         linkHosts = link.hosts; UserDefaults.standard.set(link.hosts, forKey: "linkHosts")
         if !link.mac.isEmpty { preferredMac = link.mac }
         manualHost = ""
@@ -135,8 +125,8 @@ final class LiveClient: ObservableObject {
     }
 
     func forgetCode() {
-        code = ""; key = nil
-        Keychain.delete("pairingCode"); Keychain.delete("pairingKey")
+        key = nil
+        Keychain.delete("pairingKey")
         linkHosts = []; UserDefaults.standard.removeObject(forKey: "linkHosts")
         deactivate()
         lines = []; history = []; latestSummary = nil
@@ -154,8 +144,7 @@ final class LiveClient: ObservableObject {
         guard browser == nil else { return }
         let params = NWParameters()
         params.includePeerToPeer = true
-        let type = securePairing ? LiveProtocol.secureServiceType : LiveProtocol.serviceType
-        let b = NWBrowser(for: .bonjour(type: type, domain: nil), using: params)
+        let b = NWBrowser(for: .bonjour(type: LiveProtocol.serviceType, domain: nil), using: params)
         b.browseResultsChangedHandler = { [weak self] results, _ in
             guard let self = self else { return }
             self.macs = results.compactMap { r in
@@ -173,7 +162,7 @@ final class LiveClient: ObservableObject {
         browser = b
     }
 
-    private var currentPort: UInt16 { securePairing ? LiveProtocol.securePort : LiveProtocol.port }
+    private var currentPort: UInt16 { LiveProtocol.port }
 
     /// Hedef: elle adres > tercih edilen Mac > bulunan ilk Mac > QR kodundaki adres
     private func target() -> (String, NWEndpoint)? {
@@ -213,7 +202,8 @@ final class LiveClient: ObservableObject {
         connection?.cancel()
         frames = MobileFrames(limit: 1 << 20)
         phase = .connecting(name)
-        let params = securePairing ? LiveProtocol.parameters(key: key!) : LiveProtocol.parameters(code: code)
+        guard let key = key else { phase = .needsCode; return }
+        let params = LiveProtocol.parameters(key: key)
         let c = NWConnection(to: endpoint, using: params)
         c.stateUpdateHandler = { [weak self, weak c] st in
             guard let self = self, let c = c, c === self.connection else { return }
@@ -236,13 +226,10 @@ final class LiveClient: ObservableObject {
 
     private func describe(_ e: NWError) -> String {
         if case .tls = e {
-            return securePairing ? "Mac bağlantıyı reddetti. Eşleştirme Mac'te yenilenmiş olabilir; Mac'teki QR kodu yeniden okutun."
-                : "Mac bağlantıyı reddetti. Eşleştirme kodu yanlış ya da Mac'te yenilenmiş olabilir."
+            return "Mac bağlantıyı reddetti. Eşleştirme Mac'te yenilenmiş ya da Mac'teki Asistan eski olabilir (0.8.13 gerekir); Mac'teki QR kodu yeniden okutun."
         }
         if case .posix(let p) = e, p == .ECONNREFUSED {
-            // The Mac may have turned the old 8-digit code off; only the QR pairing works then.
-            return securePairing ? "Mac'e ulaşıldı ama Asistan dinlemiyor. Mac'te Ayarlar > iPhone ve Odak'ta mobil bağlantının açık olduğunu kontrol edin."
-                : "Mac'e ulaşıldı ama eski kodla bağlantı kabul edilmiyor. Mac'te Ayarlar > iPhone ve Odak'taki QR kodu okutun."
+            return "Mac'e ulaşıldı ama Asistan dinlemiyor. Mac'te Ayarlar > iPhone ve Odak'ta mobil bağlantının açık olduğunu kontrol edin."
         }
         return "Mac'e bağlanılamadı (\(e.localizedDescription)). Aynı Wi-Fi ağında olduğunuzdan emin olun."
     }
