@@ -6,6 +6,7 @@ import UIKit
 struct ContentView: View {
     @EnvironmentObject var client: LiveClient
     @State private var showSettings = false
+    @State private var showHistory = false
 
     var body: some View {
         NavigationStack {
@@ -27,12 +28,17 @@ struct ContentView: View {
                         .accessibilityLabel("Metni paylaş")
                     }
                 }
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    if client.macSupportsHistory && client.phase != .needsCode {
+                        Button { showHistory = true } label: { Image(systemName: "clock.arrow.circlepath") }
+                            .accessibilityLabel("Son görüşmeler")
+                    }
                     Button { showSettings = true } label: { Image(systemName: "gearshape") }
                         .accessibilityLabel("Ayarlar")
                 }
             }
             .sheet(isPresented: $showSettings) { SettingsView() }
+            .sheet(isPresented: $showHistory) { HistoryView() }
         }
         // Görüşme sürerken ekran kapanmasın; telefon masada dururken metin okunabilsin.
         .onChange(of: client.inSession || client.humanCall, initial: true) { _, active in
@@ -52,15 +58,17 @@ struct LiveView: View {
     @EnvironmentObject var client: LiveClient
     @State private var draft = ""
     @State private var confirmEnd = false
+    @State private var ringDismissed = false
+    /// Okuyucu en alttaysa yeni satırlar izlenir; yukarı kaydırınca konum korunur
+    @State private var atBottom = true
+    @State private var unseen = false
     @FocusState private var typing: Bool
 
-    /// Mac'teki "Hazır notlar" listesiyle aynı
-    static let quickNotes = [
-        "Şu an müsait değilim; en kısa sürede dönüş yapacağım.",
-        "Mesajını ve geri dönüş numarasını not al.",
-        "Konuyu kısaca öğren, sonra görüşmeyi kibarca bitir.",
-        "Acil bir durumsa bana hemen mesaj atmasını söyle.",
-    ]
+    /// Tam ekran gelen arama; "Kapat" ile küçük karta döner
+    private var ringFullScreen: Binding<Bool> {
+        Binding(get: { client.phase == .connected && client.ringing && !client.inSession && !ringDismissed },
+                set: { if !$0 { ringDismissed = true } })
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -76,6 +84,8 @@ struct LiveView: View {
         // Gelen aramada ve görüşme başlayınca kısa titreşim
         .sensoryFeedback(.warning, trigger: client.ringing) { _, ringing in ringing }
         .sensoryFeedback(.success, trigger: client.inSession) { _, inSession in inSession }
+        .onChange(of: client.ringing) { _, ringing in if !ringing { ringDismissed = false } }
+        .fullScreenCover(isPresented: ringFullScreen) { RingingView(dismissed: $ringDismissed) }
         .confirmationDialog("Görüşme sonlandırılsın mı?", isPresented: $confirmEnd, titleVisibility: .visible) {
             Button("Sonlandır", role: .destructive) { client.endSession() }
         } message: {
@@ -118,21 +128,48 @@ struct LiveView: View {
                     ForEach(client.lines) { line in
                         LineView(line: line).id(line.id)
                     }
+                    if let summary = client.latestSummary, !client.inSession {
+                        SummaryCard(item: summary)
+                    }
                     Color.clear.frame(height: 1).id("bottom")
+                        .onAppear { atBottom = true; unseen = false }
+                        .onDisappear { atBottom = false }
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 12)
             }
             .scrollDismissesKeyboard(.interactively)
-            .onChange(of: client.lines.last?.id) { _, _ in
-                withAnimation(.easeOut(duration: 0.2)) { proxy.scrollTo("bottom", anchor: .bottom) }
-            }
+            .onChange(of: client.lines.last?.id) { _, _ in follow(proxy, animated: true) }
             .onChange(of: client.lines.last?.text) { _, _ in
                 // GPT-Live son satırı yerinde günceller; metin uzayınca da altta kal
-                proxy.scrollTo("bottom", anchor: .bottom)
+                follow(proxy, animated: false)
             }
+            .onChange(of: client.latestSummary) { _, _ in follow(proxy, animated: true) }
             .onAppear { proxy.scrollTo("bottom", anchor: .bottom) }
+            .overlay(alignment: .bottom) {
+                if unseen && !atBottom {
+                    Button {
+                        unseen = false
+                        withAnimation(.easeOut(duration: 0.2)) { proxy.scrollTo("bottom", anchor: .bottom) }
+                    } label: {
+                        Label("Yeni satırlar", systemImage: "arrow.down")
+                            .font(.footnote.weight(.semibold))
+                            .padding(.horizontal, 14).padding(.vertical, 8)
+                            .background(.thinMaterial, in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.bottom, 8)
+                    .transition(.opacity)
+                }
+            }
         }
+    }
+
+    /// Yalnızca okuyucu en alttayken kaydır; yukarıdaki satırı okurken yer değişmesin
+    private func follow(_ proxy: ScrollViewProxy, animated: Bool) {
+        guard atBottom else { unseen = true; return }
+        if animated { withAnimation(.easeOut(duration: 0.2)) { proxy.scrollTo("bottom", anchor: .bottom) } }
+        else { proxy.scrollTo("bottom", anchor: .bottom) }
     }
 
     private var emptyState: some View {
@@ -152,7 +189,7 @@ struct LiveView: View {
     private var quickNoteChips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                ForEach(Self.quickNotes, id: \.self) { note in
+                ForEach(client.quickNotes, id: \.self) { note in
                     Button {
                         draft = note
                         typing = true
@@ -337,6 +374,119 @@ struct LineView: View {
         case .interrupted: return .orange
         case .you: return .purple
         case .note: return .secondary
+        }
+    }
+}
+
+// MARK: - Gelen arama (tam ekran)
+
+struct RingingView: View {
+    @EnvironmentObject var client: LiveClient
+    @Binding var dismissed: Bool
+
+    var body: some View {
+        VStack(spacing: 24) {
+            Spacer()
+            Image(systemName: client.source == "whatsapp" ? "message.circle.fill" : "phone.circle.fill")
+                .font(.system(size: 72))
+                .foregroundStyle(.green)
+                .accessibilityLabel(client.source == "whatsapp" ? "WhatsApp araması" : "Telefon araması")
+            VStack(spacing: 6) {
+                Text("Gelen arama").font(.headline).foregroundStyle(.secondary)
+                Text(client.ringer.isEmpty ? "Bilinmeyen arayan" : client.ringer)
+                    .font(.largeTitle.bold())
+                    .multilineTextAlignment(.center)
+                    .lineLimit(3)
+                    .minimumScaleFactor(0.6)
+                if !client.macName.isEmpty {
+                    Text(client.macName).font(.subheadline).foregroundStyle(.secondary)
+                }
+            }
+            .padding(.horizontal, 24)
+            Spacer()
+            if client.paused {
+                Text("Mac'te arama karşılama duraklatılmış. Ayarlar'dan sürdürebilirsiniz.")
+                    .font(.footnote).foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center).padding(.horizontal, 32)
+            }
+            Button {
+                client.answerCall()
+            } label: {
+                Label("Asistanla cevapla", systemImage: "phone.fill")
+                    .font(.title3.weight(.semibold))
+                    .frame(maxWidth: .infinity, minHeight: 56)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(.green)
+            .disabled(client.paused)
+            .padding(.horizontal, 24)
+            Button("Kapat") { dismissed = true }
+                .font(.body.weight(.medium))
+                .padding(.bottom, 32)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(.systemBackground))
+    }
+}
+
+// MARK: - Görüşme özeti ve geçmiş
+
+struct SummaryCard: View {
+    let item: HistoryItem
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Label("Görüşme özeti", systemImage: "doc.text")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+            Text(item.summary.isEmpty ? "Özet hazırlanamadı; döküm Mac'te kaydedildi." : item.summary)
+                .font(.callout)
+                .textSelection(.enabled)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+}
+
+struct HistoryView: View {
+    @EnvironmentObject var client: LiveClient
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            List {
+                if client.history.isEmpty {
+                    Text("Henüz görüşme notu yok").foregroundStyle(.secondary)
+                }
+                ForEach(client.history) { item in
+                    NavigationLink {
+                        ScrollView {
+                            Text(item.summary.isEmpty ? "Bu görüşme için özet yok. Tam döküm Mac'teki notlar klasöründe." : item.summary)
+                                .textSelection(.enabled)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding()
+                        }
+                        .navigationTitle(item.title)
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbar {
+                            ShareLink(item: item.title + "\n\n" + item.summary) { Image(systemName: "square.and.arrow.up") }
+                        }
+                    } label: {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(item.title).font(.subheadline.weight(.semibold))
+                            if !item.summary.isEmpty {
+                                Text(item.summary).font(.footnote).foregroundStyle(.secondary).lineLimit(2)
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Son görüşmeler")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) { Button("Bitti") { dismiss() } }
+            }
         }
     }
 }

@@ -11,6 +11,8 @@ struct AsistanCanliApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(client)
+                // iPhone Kamera'yla okutulan eşleştirme QR kodu asistan://pair?… bağlantısını açar
+                .onOpenURL { url in _ = client.pair(url.absoluteString) }
         }
         .onChange(of: scenePhase, initial: true) { _, phase in
             // Arka planda bağlantı tutulamaz; ön plana dönünce yeniden bağlanıp son durumu alırız
