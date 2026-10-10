@@ -14,6 +14,14 @@ struct LiveLine: Identifiable, Equatable {
     let date: Date
 }
 
+/// Mac'teki notlar klasöründen bir görüşme: başlık ve özet (döküm telefona gelmez)
+struct HistoryItem: Identifiable, Equatable {
+    let id: String
+    let title: String
+    let summary: String
+    let date: Date
+}
+
 struct FoundMac: Identifiable, Hashable {
     let name: String
     let endpoint: NWEndpoint
@@ -22,7 +30,7 @@ struct FoundMac: Identifiable, Hashable {
 
 final class LiveClient: ObservableObject {
     enum Phase: Equatable {
-        case needsCode              // eşleştirme kodu girilmedi
+        case needsCode              // eşleştirilmedi
         case searching              // Mac aranıyor
         case connecting(String)
         case connected
@@ -43,6 +51,19 @@ final class LiveClient: ObservableObject {
     @Published private(set) var paused = false      // Mac'te arama karşılama duraklatıldı
     @Published private(set) var humanCall = false   // kullanıcı görüşmeyi Mac'te devraldı
     @Published private(set) var macVersion = ""     // Mac'teki Asistan sürümü (0.8.4+)
+    @Published private(set) var capabilities: Set<String> = []
+    @Published private(set) var quickNotes = LiveClient.defaultQuickNotes
+    @Published private(set) var history: [HistoryItem] = []
+    /// Son görüşmenin özeti; Mac özeti kaydedince gelir, yeni görüşme başlayınca kalkar
+    @Published private(set) var latestSummary: HistoryItem?
+
+    /// Hazır not göndermeyen eski Mac sürümleri için Mac'tekiyle aynı varsayılanlar
+    static let defaultQuickNotes = [
+        "Şu an müsait değilim; en kısa sürede dönüş yapacağım.",
+        "Mesajını ve geri dönüş numarasını not al.",
+        "Konuyu kısaca öğren, sonra görüşmeyi kibarca bitir.",
+        "Acil bir durumsa bana hemen mesaj atmasını söyle.",
+    ]
 
     /// Elle girilen adres (Bonjour çalışmayan ağlar / VPN için), boşsa otomatik bulma
     @Published var manualHost: String = UserDefaults.standard.string(forKey: "manualHost") ?? "" {
@@ -54,15 +75,20 @@ final class LiveClient: ObservableObject {
     }
 
     private(set) var code: String = Keychain.read("pairingCode") ?? ""
+    /// QR ile alınan 256 bit anahtar. Varsa eski 8 haneli kod kullanılmaz.
+    private(set) var key: Data? = Keychain.read("pairingKey").flatMap(PairingLink.decode)
+    /// QR kodundaki Mac adresleri; Bonjour Mac'i bulamazsa denenir
+    private var linkHosts: [String] = UserDefaults.standard.stringArray(forKey: "linkHosts") ?? []
     private var browser: NWBrowser?
     private var connection: NWConnection?
-    private var buffer = Data()
+    private var frames = MobileFrames(limit: 1 << 20)
     private var active = false          // uygulama ön planda ve bağlanmak istiyoruz
     private var retryWork: DispatchWorkItem?
     private var pingTimer: Timer?
     private var lastPong = Date()
 
-    var hasCode: Bool { code.count == 8 }
+    var securePairing: Bool { key?.count == PairingLink.keyLength }
+    var hasCode: Bool { securePairing || code.count == 8 }
 
     init() {
         if !hasCode { phase = .needsCode }
@@ -85,19 +111,35 @@ final class LiveClient: ObservableObject {
         connection?.cancel(); connection = nil
     }
 
+    /// Eski yöntem: Mac'teki 8 haneli kod
     func setCode(_ raw: String) {
         let digits = raw.filter(\.isNumber)
         guard digits.count == 8 else { return }
         code = digits
         Keychain.save("pairingCode", digits)
+        key = nil; Keychain.delete("pairingKey")
         reconnect()
     }
 
+    /// QR kodu, Kamera'dan açılan bağlantı ya da yapıştırılan metin
+    @discardableResult func pair(_ text: String) -> Bool {
+        guard let link = PairingLink(text) else { return false }
+        key = link.key
+        Keychain.save("pairingKey", PairingLink.encode(link.key))
+        code = ""; Keychain.delete("pairingCode")
+        linkHosts = link.hosts; UserDefaults.standard.set(link.hosts, forKey: "linkHosts")
+        if !link.mac.isEmpty { preferredMac = link.mac }
+        manualHost = ""
+        reconnect()
+        return true
+    }
+
     func forgetCode() {
-        code = ""
-        Keychain.delete("pairingCode")
+        code = ""; key = nil
+        Keychain.delete("pairingCode"); Keychain.delete("pairingKey")
+        linkHosts = []; UserDefaults.standard.removeObject(forKey: "linkHosts")
         deactivate()
-        lines = []
+        lines = []; history = []; latestSummary = nil
         phase = .needsCode
     }
 
@@ -112,7 +154,8 @@ final class LiveClient: ObservableObject {
         guard browser == nil else { return }
         let params = NWParameters()
         params.includePeerToPeer = true
-        let b = NWBrowser(for: .bonjour(type: LiveProtocol.serviceType, domain: nil), using: params)
+        let type = securePairing ? LiveProtocol.secureServiceType : LiveProtocol.serviceType
+        let b = NWBrowser(for: .bonjour(type: type, domain: nil), using: params)
         b.browseResultsChangedHandler = { [weak self] results, _ in
             guard let self = self else { return }
             self.macs = results.compactMap { r in
@@ -130,13 +173,18 @@ final class LiveClient: ObservableObject {
         browser = b
     }
 
-    /// Hedef: elle adres > tercih edilen Mac > bulunan ilk Mac
+    private var currentPort: UInt16 { securePairing ? LiveProtocol.securePort : LiveProtocol.port }
+
+    /// Hedef: elle adres > tercih edilen Mac > bulunan ilk Mac > QR kodundaki adres
     private func target() -> (String, NWEndpoint)? {
         let host = manualHost.trimmingCharacters(in: .whitespaces)
-        if !host.isEmpty, let port = NWEndpoint.Port(rawValue: LiveProtocol.port) {
+        if !host.isEmpty, let port = NWEndpoint.Port(rawValue: currentPort) {
             return (host, .hostPort(host: NWEndpoint.Host(host), port: port))
         }
         if let m = macs.first(where: { $0.name == preferredMac }) ?? macs.first { return (m.name, m.endpoint) }
+        if let host = linkHosts.first, let port = NWEndpoint.Port(rawValue: currentPort) {
+            return (preferredMac.isEmpty ? host : preferredMac, .hostPort(host: NWEndpoint.Host(host), port: port))
+        }
         return nil
     }
 
@@ -163,9 +211,10 @@ final class LiveClient: ObservableObject {
         retryWork?.cancel()
         connection?.stateUpdateHandler = nil
         connection?.cancel()
-        buffer = Data()
+        frames = MobileFrames(limit: 1 << 20)
         phase = .connecting(name)
-        let c = NWConnection(to: endpoint, using: LiveProtocol.parameters(code: code))
+        let params = securePairing ? LiveProtocol.parameters(key: key!) : LiveProtocol.parameters(code: code)
+        let c = NWConnection(to: endpoint, using: params)
         c.stateUpdateHandler = { [weak self, weak c] st in
             guard let self = self, let c = c, c === self.connection else { return }
             switch st {
@@ -186,9 +235,12 @@ final class LiveClient: ObservableObject {
     }
 
     private func describe(_ e: NWError) -> String {
-        if case .tls = e { return "Mac bağlantıyı reddetti. Eşleştirme kodu yanlış ya da Mac'te yenilenmiş olabilir." }
+        if case .tls = e {
+            return securePairing ? "Mac bağlantıyı reddetti. Eşleştirme Mac'te yenilenmiş olabilir; Mac'teki QR kodu yeniden okutun."
+                : "Mac bağlantıyı reddetti. Eşleştirme kodu yanlış ya da Mac'te yenilenmiş olabilir."
+        }
         if case .posix(let p) = e, p == .ECONNREFUSED {
-            return "Mac'e ulaşıldı ama Asistan dinlemiyor. Mac'te menüden “iPhone'dan izle…” seçeneğini açın."
+            return "Mac'e ulaşıldı ama Asistan dinlemiyor. Mac'te menüden “iPhone ve Odak…” penceresini açıp mobil bağlantıyı açın."
         }
         return "Mac'e bağlanılamadı (\(e.localizedDescription)). Aynı Wi-Fi ağında olduğunuzdan emin olun."
     }
@@ -214,12 +266,9 @@ final class LiveClient: ObservableObject {
         c.receive(minimumIncompleteLength: 1, maximumLength: 65536) { [weak self, weak c] data, _, done, err in
             guard let self = self, let c = c, c === self.connection else { return }
             if let data = data, !data.isEmpty {
-                self.buffer.append(data)
-                while let nl = self.buffer.firstIndex(of: 0x0A) {
-                    let line = self.buffer.subdata(in: self.buffer.startIndex..<nl)
-                    self.buffer.removeSubrange(self.buffer.startIndex...nl)
-                    if let obj = try? JSONSerialization.jsonObject(with: line) as? [String: Any] { self.handle(obj) }
-                }
+                // Satır başına bir JSON; 1 MB'tan uzun ya da bozuk satır bağlantıyı yeniler
+                do { for obj in try self.frames.consume(data) { self.handle(obj) } }
+                catch { self.fail(c, "Mac'ten beklenmeyen veri geldi; yeniden bağlanılıyor…"); return }
             }
             if let err = err { self.fail(c, self.describe(err)); return }
             if done { self.fail(c, "Mac bağlantıyı kapattı."); return }
@@ -233,8 +282,12 @@ final class LiveClient: ObservableObject {
         case "hello":
             macName = obj["mac"] as? String ?? ""
             macVersion = obj["app"] as? String ?? ""
+            capabilities = Set(obj["caps"] as? [String] ?? [])
+            if !capabilities.contains("quickNotes") { quickNotes = Self.defaultQuickNotes }
         case "state":
+            let wasInSession = inSession
             inSession = obj["inSession"] as? Bool ?? false
+            if inSession && !wasInSession { latestSummary = nil }
             caller = obj["caller"] as? String ?? ""
             status = obj["status"] as? String ?? ""
             startedAt = (obj["startedAt"] as? Double).map { Date(timeIntervalSince1970: $0) }
@@ -249,6 +302,12 @@ final class LiveClient: ObservableObject {
             lines = []
         case "line":
             if let l = LiveClient.parseLine(obj) { lines.append(l) }
+        case "quickNotes":
+            let items = (obj["items"] as? [String] ?? []).filter { !$0.isEmpty }
+            quickNotes = items.isEmpty ? Self.defaultQuickNotes : Array(items.prefix(8))
+        case "history":
+            history = (obj["items"] as? [[String: Any]] ?? []).compactMap(LiveClient.parseHistory)
+            if obj["fresh"] as? Bool == true, !inSession { latestSummary = history.first }
         default: break
         }
     }
@@ -260,6 +319,12 @@ final class LiveClient: ObservableObject {
                         speaker: o["speaker"] as? String ?? "",
                         text: text,
                         date: Date(timeIntervalSince1970: o["ts"] as? Double ?? Date().timeIntervalSince1970))
+    }
+
+    private static func parseHistory(_ o: [String: Any]) -> HistoryItem? {
+        guard let id = o["id"] as? String, let title = o["title"] as? String else { return nil }
+        return HistoryItem(id: id, title: title, summary: o["summary"] as? String ?? "",
+                           date: Date(timeIntervalSince1970: o["ts"] as? Double ?? 0))
     }
 
     // MARK: Gönderme
@@ -283,12 +348,15 @@ final class LiveClient: ObservableObject {
     /// Mac'te arama karşılamayı duraklat / sürdür (Asistan 0.8.4+; görüşme sırasında değiştirilemez)
     func setPaused(_ on: Bool) { send(["t": "pause", "on": on]) }
 
-    /// Mac'in gönderdiği durum alanlarını destekleyen bir sürüm mü (0.8.4+)?
+    /// Yeni Mac'ler desteklediklerini hello'da bildirir; bildirmeyen eski Mac'te sürüm 0.8.4+ aranır
     var macSupportsPause: Bool {
+        if capabilities.contains("pause") { return true }
         let parts = macVersion.split(separator: ".").compactMap { Int($0) }
         guard parts.count >= 2 else { return false }
         return parts[0] > 0 || parts[1] > 8 || (parts[1] == 8 && parts.count >= 3 && parts[2] >= 4)
     }
+
+    var macSupportsHistory: Bool { capabilities.contains("history") }
 
     /// Paylaşım için düz metin
     var transcriptText: String {
@@ -316,7 +384,7 @@ final class LiveClient: ObservableObject {
     }
 }
 
-/// Eşleştirme kodu anahtar zincirinde saklanır
+/// Eşleştirme kodu ve anahtarı anahtar zincirinde saklanır
 enum Keychain {
     private static func query(_ key: String) -> [String: Any] {
         [kSecClass as String: kSecClassGenericPassword,

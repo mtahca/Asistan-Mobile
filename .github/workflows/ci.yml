@@ -1,0 +1,19 @@
+name: CI
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      # Asistan'daki app/MobileProtocol.swift ile birebir aynı olmalı. Aynı adlı dal varsa onunla, yoksa main ile karşılaştırılır.
+      - name: Ortak protokol dosyasını karşılaştır
+        run: |
+          branch="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
+          url="https://raw.githubusercontent.com/mtahca/Asistan/$branch/app/MobileProtocol.swift"
+          curl -fsSL "$url" -o "$RUNNER_TEMP/mac.swift" || curl -fsSL "https://raw.githubusercontent.com/mtahca/Asistan/main/app/MobileProtocol.swift" -o "$RUNNER_TEMP/mac.swift"
+          diff -u "$RUNNER_TEMP/mac.swift" AsistanCanli/MobileProtocol.swift
+      - name: iOS Simulator için derle
+        run: xcodebuild -project AsistanCanli.xcodeproj -target AsistanCanli -sdk iphonesimulator -configuration Debug CODE_SIGNING_ALLOWED=NO build
